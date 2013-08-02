@@ -1,11 +1,15 @@
 ﻿using System;
 using System.Collections.Specialized;
+using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Security;
+using System.Net.Sockets;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using IPHelper;
 
 namespace SharpProxy
 {
@@ -18,11 +22,35 @@ namespace SharpProxy
         public string Version { get; set; }
         public NameValueCollection Headers { get; private set; }
 
-        public ProxyRequest(Stream stream)
+        public ProxyRequest(Socket socket)
+        {
+            var ipEndpoint = socket.RemoteEndPoint as IPEndPoint;
+            if (ipEndpoint != null)
+                ResolvePid(ipEndpoint);
+
+            Stream = new NetworkStream(socket);
+
+            ReadPrologue();
+        }
+
+        private ProxyRequest(Stream stream)
         {
             Stream = stream;
 
             ReadPrologue();
+        }
+
+        private void ResolvePid(IPEndPoint ipEndPoint)
+        {
+            var stopwatch = new Stopwatch();
+            stopwatch.Start();
+            var port = ipEndPoint.Port;
+            var tcpTable = Functions.GetExtendedTcpTable(false, Win32Funcs.TcpTableType.OwnerPidAll);
+            var clientRow = tcpTable.FirstOrDefault(x => Equals(x.LocalEndPoint, ipEndPoint));
+            var pid = clientRow.ProcessId;
+            stopwatch.Stop();
+
+            var i = 0;
         }
 
         private void ReadPrologue()
@@ -56,7 +84,6 @@ namespace SharpProxy
         {
             if (Method == "CONNECT")
             {
-                //TODO FiddlerCore
                 if (FiddlerCert == null)
                     throw new NotSupportedException("SSL Not supported - Fidder Cert not found");
                 await ProcessSsl();
@@ -109,7 +136,15 @@ namespace SharpProxy
                     case "Proxy-Connection":
                         break;
                     default:
-                        throw new Exception("Unmapped Header " + key);
+                        try
+                        {
+                            httpRequest.Headers[key] = nvc[key];
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new Exception("Unmapped Header " + key);
+                        }
+                        break;
                 }
             }
         }
@@ -151,7 +186,7 @@ namespace SharpProxy
 
         public static void SetFiddlerCert()
         {
-            var store = new X509Store(StoreName.Root, StoreLocation.LocalMachine);
+            var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
             store.Open(OpenFlags.ReadOnly);
             foreach (X509Certificate2 cert in store.Certificates)
             {

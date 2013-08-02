@@ -9,19 +9,26 @@ namespace SharpProxy
     //http://msdn.microsoft.com/en-us/library/system.net.httplistener.aspx
     class ProxyListener : IProxyListener
     {
-        private readonly TcpListener _listener;
+        //private readonly TcpListener _listener;
+
+        //https://gist.github.com/leandrosilva/656054
+        private readonly Socket _proxySocket;
+        private readonly IPAddress _localAddress;
+        private readonly Int32 _port;
 
         /// <summary>
         /// 
         /// </summary>
         /// <param name="port"></param>
-        /// <param name="address"></param>
-        public ProxyListener(Int32 port, string address)
+        /// <param name="ipAddress"></param>
+        public ProxyListener(Int32 port, IPAddress ipAddress)
         {
             try
             {
-                var localAddress = IPAddress.Parse(address);
-                _listener = new TcpListener(localAddress, port);
+                _localAddress = ipAddress;
+                _port = port;
+                //_listener = new TcpListener(localAddress, port);
+                _proxySocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
             }
             catch (Exception e)
             {
@@ -37,7 +44,9 @@ namespace SharpProxy
  
         void IProxyListener.Start()
         {
-            _listener.Start();
+            //_listener.Start();
+            _proxySocket.Bind(new IPEndPoint(_localAddress, _port));
+            _proxySocket.Listen(25);
             IsListening = true;
             Task.Run((Action) WaitForRequest);
             Console.WriteLine("Proxy listening...");
@@ -45,17 +54,20 @@ namespace SharpProxy
 
         void IProxyListener.Stop()
         {
-            _listener.Stop();
+            //_listener.Stop();
+            _proxySocket.Shutdown(SocketShutdown.Both);
             IsListening = false;
             Console.WriteLine("Proxy not listening...");
         }
 
         private async void WaitForRequest()
         {
-            TcpClient client = null;
+            //TcpClient client = null;
+            Socket clientSocket = null;
             try
             {
-                client = await Task.Factory.FromAsync<TcpClient>(_listener.BeginAcceptTcpClient, _listener.EndAcceptTcpClient, null);
+                //client = await Task.Factory.FromAsync<TcpClient>(_listener.BeginAcceptTcpClient, _listener.EndAcceptTcpClient, null);
+                clientSocket = await Task.Factory.FromAsync<Socket>(_proxySocket.BeginAccept, _proxySocket.EndAccept, null);
             }
             catch (Exception)
             {
@@ -67,19 +79,21 @@ namespace SharpProxy
                 if (IsListening)
                     WaitForRequest();
             }
-            if (client == null)
+            if (clientSocket == null)
                 return;
-            HandleRequest(client);
+            //var clientSocket = await clientSocketTask;
+            HandleRequest(clientSocket);
         }
 
-        async private void HandleRequest(TcpClient client)
+        async private void HandleRequest(Socket clientSocket)
         {
-            if (client == null)
+            if (clientSocket == null)
                 throw new ArgumentNullException("client");
 
             try
             {
-                var proxyRequest = new ProxyRequest(client.GetStream());
+                //clientSocket.B
+                var proxyRequest = new ProxyRequest(clientSocket);
                 await proxyRequest.Process();
             }
             catch (Exception)
@@ -87,7 +101,7 @@ namespace SharpProxy
             }
             finally
             {
-                client.Close();
+                clientSocket.Close();
             }
         }
     }

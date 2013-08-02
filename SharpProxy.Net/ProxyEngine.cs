@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Linq;
+using System.Net;
+using System.Net.Sockets;
 
 namespace SharpProxy
 {
@@ -6,12 +9,10 @@ namespace SharpProxy
     {
         private IProxyListener _listener;
 
-        private ProxyEngine(bool autoStart = true)
+        private ProxyEngine(IPAddress ipAddress, int port, bool autoStart = true)
         {
-            var port = 8088;
-            var ipString = "192.168.1.100"; //the ip of the machine on which the proxy is running/listening
-            _listener = new ProxyListener(port, ipString);
-            var uriBuilder = new UriBuilder("http", ipString, port);
+            _listener = new ProxyListener(port, ipAddress);
+            var uriBuilder = new UriBuilder("http", ipAddress.ToString(), port);
             Uri = uriBuilder.Uri;
             if (autoStart)
                 _listener.Start();
@@ -19,7 +20,23 @@ namespace SharpProxy
 
         public static IProxyEngine New(bool autoStart = true)
         {
-            return new ProxyEngine(autoStart);
+            var port = 8088;
+            var ip = LocalIPAddress(); //the ip of the machine on which the proxy is running/listening
+            return new ProxyEngine(ip, port, autoStart);
+        }
+        
+        private static IPAddress LocalIPAddress()
+        {
+            if (!System.Net.NetworkInformation.NetworkInterface.GetIsNetworkAvailable())
+            {
+                return null;
+            }
+
+            IPHostEntry host = Dns.GetHostEntry(Dns.GetHostName());
+
+            return host
+                .AddressList
+                .FirstOrDefault(ip => ip.AddressFamily == AddressFamily.InterNetwork);
         }
 
         private Uri Uri { get; set; }

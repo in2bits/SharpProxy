@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Net;
+using System.Net.Cache;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading;
@@ -47,7 +48,7 @@ namespace ConsoleTest
             var uriA = new Uri("http://www.yahoo.com", UriKind.Absolute);
             var uriB = new Uri("https://www.google.com", UriKind.Absolute);
 
-            _a = new WebClient {Proxy = _engine.ToProxy()};
+            _a = new WebClient() {Proxy = _engine.ToProxy()};
             _a.OpenReadCompleted += OnOpenReadCompleted;
 
             _b = new WebClient {Proxy = _engine.ToProxy()};
