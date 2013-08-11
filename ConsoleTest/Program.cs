@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Net.Cache;
@@ -7,7 +8,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading;
 using System.Threading.Tasks;
 using SharpProxy;
-using SharpProxy.Adapter.Net;
 
 namespace ConsoleTest
 {
@@ -16,7 +16,7 @@ namespace ConsoleTest
         static void Main(string[] args)
         {
             ServicePointManager.ServerCertificateValidationCallback = TrustCertificate;
-            _engine = ProxyEngine.New();
+            _proxy = ProxyEngine.New();
             Task.Run((Action)MakeRequest);
             while (!_done)
             {
@@ -33,10 +33,13 @@ namespace ConsoleTest
             return true;
         }
 
-        private static IProxyEngine _engine;
+        private static IWebProxy _proxy;
 
-        private static WebClient _a;
-        private static WebClient _b;
+        private static Uri _uriA;
+        private static Uri _uriB;
+
+        private static HttpWebRequest _a;
+        private static HttpWebRequest _b;
 
         private static bool _aDone;
         private static bool _bDone;
@@ -45,33 +48,55 @@ namespace ConsoleTest
 
         private static void MakeRequest()
         {
-            var uriA = new Uri("http://www.yahoo.com", UriKind.Absolute);
-            var uriB = new Uri("https://www.google.com", UriKind.Absolute);
+            _uriA = new Uri("http://www.yahoo.com", UriKind.Absolute);
+            //_uriA = new Uri("http://hsrd.yahoo.com/favicon.ico", UriKind.Absolute);
+            //_uriA = new Uri("https://www.google.com", UriKind.Absolute);
+            //_uriA = new Uri("https://l.yimg.com/zz/combo?&nn/lib/metro/g/uicontrib/dali/dali_transport_1.1.34.js&nn/lib/metro/g/uicontrib/dali/metro_dali_1.0.27.js&nn/lib/metro/g/uicontrib/dali/module_api_1.1.16.js&nn/lib/metro/g/uicontrib/dali/yui_service_0.1.17.js", UriKind.Absolute);
 
-            _a = new WebClient() {Proxy = _engine.ToProxy()};
-            _a.OpenReadCompleted += OnOpenReadCompleted;
+            WebRequest.DefaultWebProxy = _proxy;
 
-            _b = new WebClient {Proxy = _engine.ToProxy()};
-            _b.OpenReadCompleted += OnOpenReadCompleted;
+            _a = WebRequest.CreateHttp(_uriA);
+            //_a.UserAgent = "Mozilla/5.0 (Windows NT 6.2; WOW64; rv:22.0) Gecko/20100101 Firefox/22.0";
+            //_a.KeepAlive = true;
+            _a.BeginGetResponse(OnGotResponse, _a);
 
-            _a.OpenReadAsync(uriA);
-            _b.OpenReadAsync(uriB);
+            //_b = WebRequest.CreateHttp(_uriB);
+            //_b.BeginGetResponse(OnGotResponse, _b);
+
         }
 
-        private static void OnOpenReadCompleted(object sender, OpenReadCompletedEventArgs openReadCompletedEventArgs)
+        private static void OnGotResponse(IAsyncResult ar)
         {
-            if (openReadCompletedEventArgs.Error == null)
+            var request = (HttpWebRequest) ar.AsyncState;
+            Exception ex = null;
+            HttpWebResponse response = null;
+            try
             {
-                using (var reader = new StreamReader(openReadCompletedEventArgs.Result))
-                    Console.WriteLine(reader.ReadToEnd());
+                response = (HttpWebResponse) request.EndGetResponse(ar);
+            }
+            catch (Exception e)
+            {
+                ex = e;
+            }
+
+            if (ex == null)
+            {
+                Debug.WriteLine("COMPLETING WebClient");
+                string text;
+                var responseStream = response.GetResponseStream();
+                var reader = new StreamReader(responseStream);
+                text = reader.ReadToEnd();
+                Console.WriteLine((request == _a ? _uriA : _uriB) + " : " + text.Length);
+            //    using (var reader = new StreamReader(openReadCompletedEventArgs.Result))
+            //        Console.WriteLine(reader.ReadToEnd());
             }
             else
             {
-                Console.WriteLine("ERROR");
+                Console.WriteLine("ERROR: " + ex.Message);
             }
-            if (sender == _a)
+            if (request == _a)
                 _aDone = true;
-            if (sender == _b)
+            if (request == _b)
                 _bDone = true;
             _done = (_aDone && _bDone);
         }

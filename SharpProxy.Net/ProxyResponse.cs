@@ -1,58 +1,73 @@
 ﻿using System.Collections.Specialized;
+using System.Diagnostics;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
+using System.Net.Security;
+using System.Net.Sockets;
+using System.Threading.Tasks;
 
 namespace SharpProxy
 {
     public class ProxyResponse
     {
-        private Stream Stream { get; set; }
+        public HttpResponsePrologue Prologue { get; set; }
+        
+        public Stream Content { get; set; }
 
-        public string Version;
-        public string StatusCode;
-        public string StatusDescription;
-        public NameValueCollection Headers;
-
-        public ProxyResponse(Stream stream, HttpWebResponse httpResponse) : this(
-            stream,
-            "HTTP/" + httpResponse.ProtocolVersion,
-            ((int)httpResponse.StatusCode).ToString(CultureInfo.InvariantCulture),
-            httpResponse.StatusDescription,
-            httpResponse.Headers)
+        async public static Task<ProxyResponse> From(Socket socket, Stream stream)
         {
+            var response = new ProxyResponse();
+
+            response.Prologue = HttpResponsePrologue.From(stream);
+
+            long contentLength;
+            if (!long.TryParse(response.Prologue.Headers.FirstOrDefault(x => x.Key == "Content-Length").Value, out contentLength))
+                contentLength = -1;
+
+            var content = new MemoryStream();
+            await stream.CopyHttpMessageToAsync(socket, content, contentLength);
+            if (content.Length != 0)
+            {
+                content.Position = 0;
+                response.Content = content;
+            }
+            Debug.WriteLine("COMPLETING Copy Response");
+
+            return response;
         }
 
-        public ProxyResponse(Stream stream, string version, string statusCode, string statusDescription, NameValueCollection headers)
+        async public Task WriteTo(NetworkStream stream)
         {
-            Stream = stream;
-
-            Version = version;
-            StatusCode = statusCode;
-            StatusDescription = statusDescription;
-            Headers = headers;
+            Prologue.WriteTo(stream);
+            await stream.FlushAsync();
+            if (Content != null)
+            {
+                await Content.CopyToAsync(stream, Content.Length);
+                await stream.FlushAsync();
+            }
         }
 
-        public void Send(byte[] bytes)
+        async public Task WriteTo(SslStream stream)
         {
-            using (var ms = new MemoryStream(bytes))
-                Send(ms);
+            Prologue.WriteTo(stream);
+            if (Content != null)
+                await Content.CopyToAsync(stream, Content.Length);
+            await stream.FlushAsync();
         }
+    }
 
-        public void Send(Stream data = null)
+    public class ProxySslResponse : ProxyResponse
+    {
+        public ProxySslResponse(string version, HttpStatusCode statusCode, string statusDescription)
         {
-            var line = string.Format("{0} {1} {2}", Version, StatusCode, StatusDescription);
-            Stream.WriteLine(line);
-            //Stream.Flush();
-
-            foreach (var key in Headers.AllKeys)
-                Stream.WriteLine(string.Format("{0}: {1}", key, Headers[key]));
-            Stream.WriteLine();
-            //Stream.Flush();
-
-            if (data != null)
-                data.CopyTo(Stream);
-            //Stream.Flush();
+            Prologue = new HttpResponsePrologue
+            {
+                Version = version,
+                StatusCode = statusCode,
+                StatusDescription = statusDescription
+            };
         }
     }
 }

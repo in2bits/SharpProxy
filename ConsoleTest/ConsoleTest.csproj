@@ -48,17 +48,9 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SharpProxy.Adapter.Net\SharpProxy.Adapter.Net.csproj">
-      <Project>{3984AFA6-4000-4C91-92A8-C3A0473CAFC1}</Project>
-      <Name>SharpProxy.Adapter.Net</Name>
-    </ProjectReference>
     <ProjectReference Include="..\SharpProxy.Net\SharpProxy.Net.csproj">
       <Project>{3A0205C3-A7DF-47FF-9FFA-FC3904CA4553}</Project>
       <Name>SharpProxy.Net</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\SharpProxy\SharpProxy.csproj">
-      <Project>{E5A33B17-A2FC-41F3-B68F-DA23AE90CF23}</Project>
-      <Name>SharpProxy</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />

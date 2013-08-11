@@ -5,9 +5,9 @@ using System.Net.Sockets;
 
 namespace SharpProxy
 {
-    public class ProxyEngine : IProxyEngine, IDisposable
+    public class ProxyEngine : IWebProxy, IDisposable
     {
-        private IProxyListener _listener;
+        private ProxyListener _listener;
 
         private ProxyEngine(IPAddress ipAddress, int port, bool autoStart = true)
         {
@@ -18,7 +18,7 @@ namespace SharpProxy
                 _listener.Start();
         }
 
-        public static IProxyEngine New(bool autoStart = true)
+        public static ProxyEngine New(bool autoStart = true)
         {
             var port = 8088;
             var ip = LocalIPAddress(); //the ip of the machine on which the proxy is running/listening
@@ -41,14 +41,18 @@ namespace SharpProxy
 
         private Uri Uri { get; set; }
 
-        Uri IProxyEngine.Uri { get { return Uri; } }
+        Uri IWebProxy.GetProxy(Uri uri)
+        {
+            return Uri;
+        }
 
-        bool IProxyEngine.IsBypassed(Uri host)
+        bool IWebProxy.IsBypassed(Uri host)
         {
             return false;
         }
 
-        IProxyListener IProxyEngine.Listener { get { return _listener; } }
+        ICredentials IWebProxy.Credentials { get; set; }
+
         public void Dispose()
         {
             if (_listener == null)

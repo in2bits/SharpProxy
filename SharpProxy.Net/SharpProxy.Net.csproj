@@ -40,6 +40,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HttpRequestPrologue.cs" />
     <Compile Include="IPHelper\Helper.cs" />
     <Compile Include="IPHelper\IPNetRow.cs" />
     <Compile Include="IPHelper\IPNetTable.cs" />
@@ -49,21 +50,26 @@
     <Compile Include="IPHelper\UdpRow.cs" />
     <Compile Include="IPHelper\UdpTable.cs" />
     <Compile Include="IPHelper\Win32Funcs.cs" />
+    <Compile Include="LogProxy.MakeCertWrapper\CertificateHashAlgorithm.cs" />
+    <Compile Include="LogProxy.MakeCertWrapper\CertificateName.cs" />
+    <Compile Include="LogProxy.MakeCertWrapper\CertificateProvider.cs" />
+    <Compile Include="LogProxy.MakeCertWrapper\CertificateType.cs" />
+    <Compile Include="LogProxy.MakeCertWrapper\CommandLine.cs" />
+    <Compile Include="LogProxy.MakeCertWrapper\KeySpecification.cs" />
+    <Compile Include="LogProxy.MakeCertWrapper\KeyType.cs" />
+    <Compile Include="LogProxy.MakeCertWrapper\KeyUsage.cs" />
+    <Compile Include="LogProxy.MakeCertWrapper\MakeCertParameters.cs" />
     <Compile Include="ProxyEngine.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ProxyListener.cs" />
     <Compile Include="ProxyRequest.cs" />
     <Compile Include="ProxyResponse.cs" />
+    <Compile Include="SslProxyRequest.cs" />
     <Compile Include="StreamExtensions.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\SharpProxy\SharpProxy.csproj">
-      <Project>{E5A33B17-A2FC-41F3-B68F-DA23AE90CF23}</Project>
-      <Name>SharpProxy</Name>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <Content Include="IPHelper\License.IPHelper.txt" />
+    <Content Include="LogProxy.MakeCertWrapper\LICENSE.txt" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
