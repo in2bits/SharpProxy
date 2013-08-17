@@ -31,8 +31,6 @@ namespace SharpProxy
             {
                 throw new NotSupportedException("TcpListener not supported on this platform.", e);
             }
-
-            SslProxyRequest.SetFiddlerCert();
         }
 
         public bool IsListening { get; set; }
@@ -82,19 +80,28 @@ namespace SharpProxy
 
             try
             {
-                var proxyRequest = ProxyRequest.For(clientSocket);
-                await proxyRequest.Process();
+                var socketRequests = 0;
+                while (clientSocket.Connected)
+                {
+                    socketRequests++;
+                    var proxyRequest = ProxyRequest.For(clientSocket);
+                    if (socketRequests > 1)
+                        Debug.WriteLine("Client Connection Reused #" + socketRequests);
+                    await proxyRequest.Process();
+                    if (!proxyRequest.Response.Prologue.Headers.ContainsIgnoreCase("Connection", "Keep-Alive"))
+                    {
+                        Debug.WriteLine("Client Connection Closed");
+                        break;
+                    }
+                }
             }
             catch (Exception e)
             {
-                Debug.WriteLine("Error Processing");
-                //if (Debugger.IsAttached)
-                //    Debugger.Break();
+                Debug.WriteLine("Socket Error: " + e.Message);
             }
             finally
             {
-                var i = 0;
-                //clientSocket.Close();
+                clientSocket.Close();
             }
         }
     }

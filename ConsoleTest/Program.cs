@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Cache;
 using System.Net.Security;
 using System.Security.Cryptography.X509Certificates;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using SharpProxy;
@@ -48,8 +49,9 @@ namespace ConsoleTest
 
         private static void MakeRequest()
         {
-            _uriA = new Uri("http://www.yahoo.com", UriKind.Absolute);
+            //_uriA = new Uri("http://www.yahoo.com", UriKind.Absolute);
             //_uriA = new Uri("http://hsrd.yahoo.com/favicon.ico", UriKind.Absolute);
+            _uriA = new Uri("http://www.google.com", UriKind.Absolute);
             //_uriA = new Uri("https://www.google.com", UriKind.Absolute);
             //_uriA = new Uri("https://l.yimg.com/zz/combo?&nn/lib/metro/g/uicontrib/dali/dali_transport_1.1.34.js&nn/lib/metro/g/uicontrib/dali/metro_dali_1.0.27.js&nn/lib/metro/g/uicontrib/dali/module_api_1.1.16.js&nn/lib/metro/g/uicontrib/dali/yui_service_0.1.17.js", UriKind.Absolute);
 
@@ -65,14 +67,15 @@ namespace ConsoleTest
 
         }
 
+        private static HttpWebResponse _response;
         private static void OnGotResponse(IAsyncResult ar)
         {
             var request = (HttpWebRequest) ar.AsyncState;
             Exception ex = null;
-            HttpWebResponse response = null;
+            _response = null;
             try
             {
-                response = (HttpWebResponse) request.EndGetResponse(ar);
+                _response = (HttpWebResponse) request.EndGetResponse(ar);
             }
             catch (Exception e)
             {
@@ -83,12 +86,14 @@ namespace ConsoleTest
             {
                 Debug.WriteLine("COMPLETING WebClient");
                 string text;
-                var responseStream = response.GetResponseStream();
-                var reader = new StreamReader(responseStream);
+                var responseStream = _response.GetResponseStream();
+                var reader = new StreamReader(responseStream, Encoding.UTF8, false, 1024, true);
                 text = reader.ReadToEnd();
-                Console.WriteLine((request == _a ? _uriA : _uriB) + " : " + text.Length);
-            //    using (var reader = new StreamReader(openReadCompletedEventArgs.Result))
-            //        Console.WriteLine(reader.ReadToEnd());
+                var message = (request == _a ? _uriA : _uriB) + " : " + text.Length;
+                Console.WriteLine(message);
+                Debug.WriteLine(message);
+                //    using (var reader = new StreamReader(openReadCompletedEventArgs.Result))
+                //        Console.WriteLine(reader.ReadToEnd());
             }
             else
             {

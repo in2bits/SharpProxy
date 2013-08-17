@@ -1,12 +1,8 @@
 ﻿using System;
-using System.Collections.Specialized;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
-using System.Security.Authentication;
-using System.Text;
 using System.Threading.Tasks;
 using IPHelper;
 
@@ -18,6 +14,7 @@ namespace SharpProxy
         public Socket ClientSocket { get; set; }
         public NetworkStream ClientStream { get; set; }
 
+        protected IPEndPoint RemoteEndPoint { get; set; }
         public Socket RemoteSocket { get; set; }
         public NetworkStream RemoteStream { get; set; }
 
@@ -36,11 +33,12 @@ namespace SharpProxy
             if (ipEndpoint != null)
                 pid = ResolvePid(ipEndpoint);
 
-            var request = new ProxyRequest();
-
-            request.ClientPid = pid;
-            request.ClientSocket = clientSocket;
-            request.ClientStream = new NetworkStream(clientSocket);
+            var request = new ProxyRequest
+                {
+                    ClientPid = pid,
+                    ClientSocket = clientSocket,
+                    ClientStream = new NetworkStream(clientSocket)
+                };
 
             request.Prologue = HttpRequestPrologue.From(request.ClientStream);
 
@@ -51,7 +49,6 @@ namespace SharpProxy
         {
             var stopwatch = new Stopwatch();
             stopwatch.Start();
-            var port = ipEndPoint.Port;
             var tcpTable = Functions.GetExtendedTcpTable(false, Win32Funcs.TcpTableType.OwnerPidAll);
             var clientRow = tcpTable.FirstOrDefault(x => Equals(x.LocalEndPoint, ipEndPoint));
             var pid = clientRow.ProcessId;
@@ -61,7 +58,7 @@ namespace SharpProxy
 
         async public Task Process()
         {
-            Debug.WriteLine("Processing");
+            Debug.Write("Request: ");
             if (Prologue.Method == "CONNECT")
             {
                 var proxySslResponse = new ProxySslResponse(Prologue.Version, HttpStatusCode.OK, "Connection Established");
@@ -71,11 +68,9 @@ namespace SharpProxy
                 var sslRequest = await SslProxyRequest.For(this);
                 await sslRequest.Process();
 
-                Debug.WriteLine("Processed SSL");
+                //Debug.WriteLine("Done (HTTPS)");
                 return;
             }
-
-            Debug.WriteLine("GetViaSocket " + Prologue.Destination);
 
             await InitRemoteSocket();
             await InitRemoteStream();
@@ -88,67 +83,18 @@ namespace SharpProxy
 
             await WriteResponseToClient();
 
-            End();
+            //End();
 
-            Debug.WriteLine("Processed");
-        }
+            if (RemoteSocket != null && Response.Prologue.Headers.ContainsIgnoreCase("Connection", "Keep-Alive"))
+                RemoteSocketProvider.Return(RemoteEndPoint, RemoteSocket);
 
-        protected async virtual Task WritePrologueToRemote()
-        {
-            await Prologue.WriteTo(RemoteStream);
-            await RemoteStream.FlushAsync();
-
-        }
-
-        protected async virtual Task GetResponse()
-        {
-            Debug.WriteLine("Getting Response");
-            Response = await ProxyResponse.From(RemoteSocket, RemoteStream);
-        }
-
-        protected async virtual Task WriteResponseToClient()
-        {
-            Debug.WriteLine("Relaying Response");
-            await Response.WriteTo(ClientStream);
-            //await ClientStream.FlushAsync();
-        }
-
-        protected virtual void End()
-        {
-            RemoteStream.Close();
-            RemoteSocket.Shutdown(SocketShutdown.Both);
-            RemoteSocket.Close();
-
-            ClientStream.Close();
-            ClientSocket.Shutdown(SocketShutdown.Both);
-            ClientSocket.Close();
+            Debug.WriteLine("Done");
         }
 
         private async Task InitRemoteSocket()
         {
-            var ipEndpoint = await GetIPEndpoint();
-
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-            var args = new SocketAsyncEventArgs
-                {
-                    RemoteEndPoint = ipEndpoint
-                };
-            var completionSource = new TaskCompletionSource<bool>();
-            args.Completed += (sender, eventArgs) => completionSource.SetResult(true);
-            Debug.WriteLine("Connect socket");
-            socket.ConnectAsync(args);
-            await completionSource.Task;
-            RemoteSocket = socket;
-        }
-
-        protected virtual async Task CopyContentFromClientToServer()
-        {
-            Debug.WriteLine("Reading Request Content");
-            long contentLength;
-            if (!long.TryParse(Prologue.Headers.FirstOrDefault(x => x.Key == "Content-Length").Value, out contentLength))
-                contentLength = -1;
-            await ClientStream.CopyHttpMessageToAsync(ClientSocket, RemoteStream, contentLength);
-            await RemoteStream.FlushAsync();
+            RemoteEndPoint = await GetIPEndpoint();
+            RemoteSocket = await RemoteSocketProvider.Get(RemoteEndPoint);
         }
 
         protected virtual Task InitRemoteStream()
@@ -157,32 +103,52 @@ namespace SharpProxy
             return Task.FromResult(0);
         }
 
+        protected async virtual Task WritePrologueToRemote()
+        {
+            await Prologue.WriteTo(RemoteStream);
+        }
+
+        protected virtual async Task CopyContentFromClientToServer()
+        {
+            //Debug.WriteLine("Reading Request Content");
+            long contentLength;
+            if (!long.TryParse(Prologue.Headers.FirstOrDefault(x => x.Key == "Content-Length").Value, out contentLength))
+                contentLength = -1;
+            await ClientStream.CopyHttpMessageToAsync(ClientSocket, RemoteStream, contentLength);
+        }
+
+        protected async virtual Task GetResponse()
+        {
+            //Debug.WriteLine("Getting Response");
+            Response = await ProxyResponse.From(RemoteSocket, RemoteStream);
+        }
+
+        protected async virtual Task WriteResponseToClient()
+        {
+            //Debug.WriteLine("Relaying Response");
+            await Response.WriteTo(ClientStream);
+        }
+
+        protected virtual void End()
+        {
+            RemoteStream.Close();
+            
+            //RemoteSocket.Shutdown(SocketShutdown.Both);
+            //RemoteSocket.Close();
+
+            ClientStream.Close();
+            //ClientSocket.Shutdown(SocketShutdown.Both);
+            //ClientSocket.Close();
+        }
+
         async protected virtual Task<IPEndPoint> GetIPEndpoint()
         {
             var uri = new Uri(Prologue.Destination, UriKind.Absolute);
-            //var scheme = uri.Scheme;
             var host = uri.Host;
             var port = uri.Port;
-            //var path = uri.AbsolutePath;
 
-            Debug.WriteLine("Resolve DNS");
-            var ipAddresses = await Dns.GetHostAddressesAsync(host);
-
-            if (!ipAddresses.Any())
-            {
-                DnsResolutionError();
-                return null;
-            }
-
-            var ipAddress = ipAddresses.First();
-            var ipEndpoint = new IPEndPoint(ipAddress, port);
-            return ipEndpoint;
-        }
-
-        protected void DnsResolutionError()
-        {
-            if (Debugger.IsAttached)
-                Debugger.Break();
+            var ipEndPoint = await IPEndPointProvider.Get(host, port);
+            return ipEndPoint;
         }
     }
 }

@@ -3,7 +3,6 @@ using System.Diagnostics;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -20,12 +19,15 @@ namespace SharpProxy
         {
             var response = new ProxyResponse();
 
+            //Debug.WriteLine("Reader Server Response Prologue");
             response.Prologue = HttpResponsePrologue.From(stream);
+            //Debug.WriteLine("Reader Server Response Prologue - DONE");
 
             long contentLength;
             if (!long.TryParse(response.Prologue.Headers.FirstOrDefault(x => x.Key == "Content-Length").Value, out contentLength))
                 contentLength = -1;
 
+            //Debug.WriteLine("Reader Server Response Content");
             var content = new MemoryStream();
             await stream.CopyHttpMessageToAsync(socket, content, contentLength);
             if (content.Length != 0)
@@ -33,7 +35,7 @@ namespace SharpProxy
                 content.Position = 0;
                 response.Content = content;
             }
-            Debug.WriteLine("COMPLETING Copy Response");
+            //Debug.WriteLine("Reader Server Response Content - DONE");
 
             return response;
         }
@@ -41,33 +43,18 @@ namespace SharpProxy
         async public Task WriteTo(NetworkStream stream)
         {
             Prologue.WriteTo(stream);
-            await stream.FlushAsync();
             if (Content != null)
-            {
                 await Content.CopyToAsync(stream, Content.Length);
-                await stream.FlushAsync();
-            }
         }
 
         async public Task WriteTo(SslStream stream)
         {
             Prologue.WriteTo(stream);
-            if (Content != null)
-                await Content.CopyToAsync(stream, Content.Length);
             await stream.FlushAsync();
-        }
-    }
-
-    public class ProxySslResponse : ProxyResponse
-    {
-        public ProxySslResponse(string version, HttpStatusCode statusCode, string statusDescription)
-        {
-            Prologue = new HttpResponsePrologue
+            if (Content != null)
             {
-                Version = version,
-                StatusCode = statusCode,
-                StatusDescription = statusDescription
-            };
+                await Content.CopyToAsync(stream, Content.Length);
+            }
         }
     }
 }

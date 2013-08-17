@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Security;
@@ -20,29 +20,25 @@ namespace SharpProxy
         private static CertificateProvider _certProvider;
         async public static Task<SslProxyRequest> For(ProxyRequest wrapperRequest)
         {
-            if (FiddlerCert == null)
-                throw new NotSupportedException("SSL Not supported - Fidder Cert not found");
-
-            var sslRequest = new SslProxyRequest();
-            sslRequest.WrapperRequest = wrapperRequest;
-            sslRequest.ClientPid = wrapperRequest.ClientPid;
-            sslRequest.ClientSocket = wrapperRequest.ClientSocket;
-            sslRequest.ClientStream = wrapperRequest.ClientStream;
-
-            var clientSsslStream = new SslStream(wrapperRequest.ClientStream, true, RemoteCertificateValidator, LocalCertificateSelector)
-                //{
-                //    ReadTimeout = 30000,
-                //    WriteTimeout = 30000
-                //}
-                ;
             if (_certProvider == null)
             {
                 _certProvider = new CertificateProvider(MakeCertPath);
                 _certProvider.EnsureRootCertificate();
             }
+
+            var sslRequest = new SslProxyRequest
+                {
+                    WrapperRequest = wrapperRequest,
+                    ClientPid = wrapperRequest.ClientPid,
+                    ClientSocket = wrapperRequest.ClientSocket,
+                    ClientStream = wrapperRequest.ClientStream
+                };
+
             var hostName = sslRequest.GetHostName();
-            var hostCert = _certProvider.GetCertificateForHost(hostName);
-            await clientSsslStream.AuthenticateAsServerAsync(hostCert);
+            sslRequest._hostCert = _certProvider.GetCertificateForHost(hostName);
+
+            var clientSsslStream = new SslStream(wrapperRequest.ClientStream, true, RemoteCertificateValidator, sslRequest.LocalCertificateSelector);
+            await clientSsslStream.AuthenticateAsServerAsync(sslRequest._hostCert);
             sslRequest.SecureClientStream = clientSsslStream;
 
             var prologue = HttpRequestPrologue.From(clientSsslStream);
@@ -51,49 +47,16 @@ namespace SharpProxy
             return sslRequest;
         }
 
-        private static X509Certificate LocalCertificateSelector(object sender, string targethost, X509CertificateCollection localcertificates, X509Certificate remotecertificate, string[] acceptableissuers)
+        private X509Certificate _hostCert;
+
+        private X509Certificate LocalCertificateSelector(object sender, string targethost, X509CertificateCollection localcertificates, X509Certificate remotecertificate, string[] acceptableissuers)
         {
-            return FiddlerCert;
+            return _hostCert;
         }
 
         private static bool RemoteCertificateValidator(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslpolicyerrors)
         {
             return true;
-        }
-
-        protected async override Task WritePrologueToRemote()
-        {
-            await Prologue.WriteTo(SecureRemoteStream);
-            await SecureRemoteStream.FlushAsync();
-        }
-
-        async protected override Task CopyContentFromClientToServer()
-        {
-            Debug.WriteLine("Reading Request Content");
-            long contentLength;
-            if (!long.TryParse(Prologue.Headers.FirstOrDefault(x => x.Key == "Content-Length").Value, out contentLength))
-                contentLength = -1;
-            await SecureClientStream.CopyHttpMessageToAsync(ClientSocket, SecureRemoteStream, contentLength);
-            await SecureRemoteStream.FlushAsync();
-        }
-
-        protected async override Task WriteResponseToClient()
-        {
-            Debug.WriteLine("Relaying Response");
-            await Response.WriteTo(SecureClientStream);
-            //await SecureClientStream.FlushAsync();
-        }
-
-        protected override void End()
-        {
-            SecureRemoteStream.Close();
-            SecureClientStream.Close();
-            base.End();
-        }
-
-        protected override async Task GetResponse()
-        {
-            Response = await ProxyResponse.From(RemoteSocket, SecureRemoteStream);
         }
 
         async protected override Task InitRemoteStream()
@@ -103,6 +66,52 @@ namespace SharpProxy
             var targetHost = WrapperRequest.Prologue.Headers.First(x => x.Key == "Host").Value;
             await secureRemoteStream.AuthenticateAsClientAsync(targetHost);
             SecureRemoteStream = secureRemoteStream;
+        }
+
+        protected async override Task WritePrologueToRemote()
+        {
+            //Debug.WriteLine("WritePrologueToRemote");
+            await Prologue.WriteTo(SecureRemoteStream);
+            //Debug.WriteLine("WritePrologueToRemote - DONE");
+        }
+
+        async protected override Task CopyContentFromClientToServer()
+        {
+            //Debug.WriteLine("CopyContentFromClientToServer - A");
+            long contentLength;
+            if (!long.TryParse(Prologue.Headers.FirstOrDefault(x => x.Key == "Content-Length").Value, out contentLength))
+                contentLength = -1;
+            //await SecureClientStream.CopyHttpMessageToAsync(ClientSocket, SecureRemoteStream, contentLength);
+            using (var ms = new MemoryStream())
+            {
+                await SecureClientStream.CopyHttpMessageToAsync(ClientSocket, ms, contentLength);
+                //Debug.WriteLine("CopyContentFromClientToServer - A - DONE");
+                ms.Position = 0;
+                //Debug.WriteLine("CopyContentFromClientToServer - B");
+                await ms.CopyToAsync(SecureRemoteStream);
+                //Debug.WriteLine("CopyContentFromClientToServer - B - DONE");
+            }
+        }
+
+        protected override async Task GetResponse()
+        {
+            //Debug.WriteLine("GetResponse");
+            Response = await ProxyResponse.From(RemoteSocket, SecureRemoteStream);
+            //Debug.WriteLine("GetResponse - DONE");
+        }
+
+        protected async override Task WriteResponseToClient()
+        {
+            //Debug.WriteLine("Relaying Response");
+            await Response.WriteTo(SecureClientStream);
+            //Debug.WriteLine("Relayed Response");
+        }
+
+        protected override void End()
+        {
+            SecureRemoteStream.Close();
+            SecureClientStream.Close();
+            base.End();
         }
 
         private string GetHostName()
@@ -121,48 +130,26 @@ namespace SharpProxy
                 port = Convert.ToInt16(destinationParts[1]);
             }
 
-            Debug.WriteLine("Resolve DNS");
-            var ipAddresses = await Dns.GetHostAddressesAsync(host);
-
-            if (!ipAddresses.Any())
-            {
-                DnsResolutionError();
-                return null;
-            }
-
-            var ipAddress = ipAddresses.First();
-
-            var ipEndpoint = new IPEndPoint(ipAddress, port);
-
+            //Debug.WriteLine("Resolve DNS");
+            var ipEndpoint = await IPEndPointProvider.Get(host, port);
             return ipEndpoint;
         }
 
-        //async override public Task Process()
+        //private const string FiddlerCertIssuer = "CN=DO_NOT_TRUST_FiddlerRoot, O=DO_NOT_TRUST, OU=Created by http://www.fiddler2.com";
+        //private static X509Certificate FiddlerCert;
+
+        //public static void SetFiddlerCert()
         //{
-        //    var httpRequest = WebRequest.CreateHttp(uriBuilder.Uri);
-        //    httpRequest.KeepAlive = false;
-        //    var httpResponse = (HttpWebResponse)(await Task.Factory.FromAsync<WebResponse>(httpRequest.BeginGetResponse, httpRequest.EndGetResponse, null).ConfigureAwait(false));
-        //    var proxyResponse = await ProxyResponse.From(httpResponse.GetResponseStream());
-
-        //    var responseStream = httpResponse.GetResponseStream();
-        //    await proxyResponse.WriteTo(responseStream);
+        //    var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
+        //    store.Open(OpenFlags.ReadOnly);
+        //    foreach (X509Certificate2 cert in store.Certificates)
+        //    {
+        //        if (cert.Issuer == FiddlerCertIssuer)
+        //        {
+        //            FiddlerCert = cert;
+        //            break;
+        //        }
+        //    }
         //}
-
-        private const string FiddlerCertIssuer = "CN=DO_NOT_TRUST_FiddlerRoot, O=DO_NOT_TRUST, OU=Created by http://www.fiddler2.com";
-        private static X509Certificate FiddlerCert;
-
-        public static void SetFiddlerCert()
-        {
-            var store = new X509Store(StoreName.Root, StoreLocation.CurrentUser);
-            store.Open(OpenFlags.ReadOnly);
-            foreach (X509Certificate2 cert in store.Certificates)
-            {
-                if (cert.Issuer == FiddlerCertIssuer)
-                {
-                    FiddlerCert = cert;
-                    break;
-                }
-            }
-        }
     }
 }

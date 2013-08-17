@@ -32,6 +32,7 @@
   <ItemGroup>
     <Reference Include="System" />
     <Reference Include="System.Core" />
+    <Reference Include="System.ServiceModel" />
     <Reference Include="System.Web" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -40,7 +41,12 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HeadersExtensions.cs" />
+    <Compile Include="HttpPrologue.cs" />
     <Compile Include="HttpRequestPrologue.cs" />
+    <Compile Include="HttpResponsePrologue.cs" />
+    <Compile Include="HttpsResponsePrologue.cs" />
+    <Compile Include="IPEndPointProvider.cs" />
     <Compile Include="IPHelper\Helper.cs" />
     <Compile Include="IPHelper\IPNetRow.cs" />
     <Compile Include="IPHelper\IPNetTable.cs" />
@@ -64,6 +70,8 @@
     <Compile Include="ProxyListener.cs" />
     <Compile Include="ProxyRequest.cs" />
     <Compile Include="ProxyResponse.cs" />
+    <Compile Include="ProxySslResponse.cs" />
+    <Compile Include="RemoteSocketProvider.cs" />
     <Compile Include="SslProxyRequest.cs" />
     <Compile Include="StreamExtensions.cs" />
   </ItemGroup>

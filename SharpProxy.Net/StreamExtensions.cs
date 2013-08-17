@@ -44,23 +44,25 @@ namespace SharpProxy
         async public static Task CopyToAsync(this Stream source, Stream target, long length)
         {
             var totalToRead = length;
-            var buffer = new byte[0x10000];
-            Debug.WriteLine("Copying " + totalToRead + " ...");
+            var buffer = new byte[0x1000];
+            //Debug.WriteLine("Copying " + totalToRead + " ...");
             while (totalToRead > 0)
             {
                 var read = await source.ReadAsync(buffer, 0, buffer.Length);
                 await target.WriteAsync(buffer, 0, read);
                 totalToRead -= read;
-                Debug.WriteLine("TotalToRead: " + totalToRead);
+                //Debug.Write(Encoding.UTF8.GetString(buffer, 0, read));
+                //Debug.WriteLine("TotalToRead: " + totalToRead);
             }
-            Debug.WriteLine("Copying DONE (" + length + ")");
+            //Debug.Write("\r\n");
+            //Debug.WriteLine("Copying DONE (" + length + ")");
         }
 
         async public static Task CopyHttpMessageToAsync(this Stream source, Socket sourceSocket, Stream target, long contentLength = -1)
         {
             if (sourceSocket.Available == 0)
             {
-                Debug.WriteLine("DataAvailable: 0");
+                //Debug.WriteLine("DataAvailable: 0");
                 return;
             }
 
@@ -75,18 +77,19 @@ namespace SharpProxy
                 if (isChunked)
                 {
                     bufferLength = GetChunkLength(source, out chunkHeader);
+                    //Debug.WriteLine("Expecting Chunk: " + bufferLength + " (" + chunkHeader + ")");
+                    target.WriteLine(chunkHeader);
+
                     if (bufferLength == 0)
                     {
                         source.ReadLine(); //eat last \r\n
-                        target.WriteLine();
+                        target.WriteLine(); //echo last \r\n to target
                         bufferLength = -1;
                     }
 
                     if (bufferLength == -1)
                         return;
 
-                    Debug.WriteLine("Expecting Chunk: " + bufferLength);
-                    target.WriteLine(chunkHeader);
                     buffer = new byte[bufferLength];
                     remaining = bufferLength;
                 }
@@ -94,7 +97,7 @@ namespace SharpProxy
                 do
                 {
                     read = await source.ReadAsync(buffer, 0, (int) Math.Min(buffer.Length, remaining));
-                    Debug.WriteLine("Read: " + read);
+                    //Debug.WriteLine("Read: " + read);
                     remaining -= read;
 
                     await target.WriteAsync(buffer, 0, read);
@@ -105,6 +108,7 @@ namespace SharpProxy
                     var line = source.ReadLine(); //eat \r\n
                     if (line != "")
                         throw new InvalidDataException("Unexpected line content");
+                    target.WriteLine(null); //end chunk
                     remaining = 1; //continue to next chunk
                 }
                 else
