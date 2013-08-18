@@ -9,7 +9,7 @@ using LogProxy.MakeCertWrapper;
 
 namespace SharpProxy
 {
-    public class SslProxyRequest : ProxyRequest
+    public class ProxySslRequest : ProxyRequest
     {
         private ProxyRequest WrapperRequest { get; set; }
 
@@ -18,7 +18,7 @@ namespace SharpProxy
 
         private const string MakeCertPath = @"C:\Program Files (x86)\Fiddler2\makecert.exe";
         private static CertificateProvider _certProvider;
-        async public static Task<SslProxyRequest> For(ProxyRequest wrapperRequest)
+        async public static Task<ProxySslRequest> For(ProxyRequest wrapperRequest)
         {
             if (_certProvider == null)
             {
@@ -26,7 +26,7 @@ namespace SharpProxy
                 _certProvider.EnsureRootCertificate();
             }
 
-            var sslRequest = new SslProxyRequest
+            var sslRequest = new ProxySslRequest
                 {
                     WrapperRequest = wrapperRequest,
                     ClientPid = wrapperRequest.ClientPid,

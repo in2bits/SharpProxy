@@ -72,7 +72,7 @@
     <Compile Include="ProxyResponse.cs" />
     <Compile Include="ProxySslResponse.cs" />
     <Compile Include="RemoteSocketProvider.cs" />
-    <Compile Include="SslProxyRequest.cs" />
+    <Compile Include="ProxySslRequest.cs" />
     <Compile Include="StreamExtensions.cs" />
   </ItemGroup>
   <ItemGroup>

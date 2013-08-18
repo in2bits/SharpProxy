@@ -28,10 +28,10 @@ namespace SharpProxy
 
         public static ProxyRequest For(Socket clientSocket)
         {
-            var ipEndpoint = clientSocket.RemoteEndPoint as IPEndPoint;
+            var clientIpEndpoint = clientSocket.RemoteEndPoint as IPEndPoint;
             var pid = 0;
-            if (ipEndpoint != null)
-                pid = ResolvePid(ipEndpoint);
+            if (clientIpEndpoint != null)
+                pid = ResolvePid(clientIpEndpoint);
 
             var request = new ProxyRequest
                 {
@@ -61,14 +61,14 @@ namespace SharpProxy
             Debug.Write("Request: ");
             if (Prologue.Method == "CONNECT")
             {
+                Debug.Write("SSL: ");
+
                 var proxySslResponse = new ProxySslResponse(Prologue.Version, HttpStatusCode.OK, "Connection Established");
                 proxySslResponse.Prologue.WriteTo(ClientStream);
-                //await ClientStream.FlushAsync();
 
-                var sslRequest = await SslProxyRequest.For(this);
+                var sslRequest = await ProxySslRequest.For(this);
                 await sslRequest.Process();
 
-                //Debug.WriteLine("Done (HTTPS)");
                 return;
             }
 
@@ -86,7 +86,13 @@ namespace SharpProxy
             //End();
 
             if (RemoteSocket != null && Response.Prologue.Headers.ContainsIgnoreCase("Connection", "Keep-Alive"))
+            {
                 RemoteSocketProvider.Return(RemoteEndPoint, RemoteSocket);
+            }
+            else
+            {
+                End();
+            }
 
             Debug.WriteLine("Done");
         }
@@ -132,13 +138,14 @@ namespace SharpProxy
         protected virtual void End()
         {
             RemoteStream.Close();
-            
-            //RemoteSocket.Shutdown(SocketShutdown.Both);
-            //RemoteSocket.Close();
+
+            RemoteSocket.Shutdown(SocketShutdown.Both);
+            RemoteSocket.Close();
 
             ClientStream.Close();
-            //ClientSocket.Shutdown(SocketShutdown.Both);
-            //ClientSocket.Close();
+
+            ClientSocket.Shutdown(SocketShutdown.Both);
+            ClientSocket.Close();
         }
 
         async protected virtual Task<IPEndPoint> GetIPEndpoint()
