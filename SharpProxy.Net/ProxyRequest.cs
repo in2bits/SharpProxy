@@ -10,6 +10,8 @@ namespace SharpProxy
 {
     public class ProxyRequest
     {
+        protected IRequestInspector _requestInspector;
+
         public int ClientPid { get; protected set; }
         public Socket ClientSocket { get; set; }
         public NetworkStream ClientStream { get; set; }
@@ -26,34 +28,49 @@ namespace SharpProxy
         {
         }
 
-        public static ProxyRequest For(Socket clientSocket)
+        public static ProxyRequest For(Socket clientSocket, IProxyInspector proxyInspector = null)
         {
-            var clientIpEndpoint = clientSocket.RemoteEndPoint as IPEndPoint;
-            var pid = 0;
-            if (clientIpEndpoint != null)
-                pid = ResolvePid(clientIpEndpoint);
-
             var request = new ProxyRequest
-                {
-                    ClientPid = pid,
-                    ClientSocket = clientSocket,
-                    ClientStream = new NetworkStream(clientSocket)
-                };
+            {
+                ClientSocket = clientSocket,
+                ClientStream = new NetworkStream(clientSocket)
+            };
 
-            request.Prologue = HttpRequestPrologue.From(request.ClientStream);
+            if (proxyInspector != null)
+                proxyInspector.OnRequestReceived(request);
+
+            request.ResolvePid();
+            request.ReadPrologue();
 
             return request;
         }
 
-        private static int ResolvePid(IPEndPoint ipEndPoint)
+        private void ResolvePid()
         {
+            ClientPid = 0;
+
+            var clientIpEndpoint = ClientSocket.RemoteEndPoint as IPEndPoint;
+            if (clientIpEndpoint == null)
+                return;
+
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             var tcpTable = Functions.GetExtendedTcpTable(false, Win32Funcs.TcpTableType.OwnerPidAll);
-            var clientRow = tcpTable.FirstOrDefault(x => Equals(x.LocalEndPoint, ipEndPoint));
+            var clientRow = tcpTable.FirstOrDefault(x => Equals(x.LocalEndPoint, clientIpEndpoint));
             var pid = clientRow.ProcessId;
             stopwatch.Stop();
-            return pid;
+            ClientPid = pid;
+
+            if (_requestInspector != null)
+                _requestInspector.OnClientPidResolved();
+        }
+
+        protected virtual void ReadPrologue()
+        {
+            Prologue = HttpRequestPrologue.From(ClientStream);
+
+            if (_requestInspector != null)
+                _requestInspector.OnPrologueReceived();
         }
 
         async public Task Process()
@@ -66,7 +83,7 @@ namespace SharpProxy
                 var proxySslResponse = new ProxySslResponse(Prologue.Version, HttpStatusCode.OK, "Connection Established");
                 proxySslResponse.Prologue.WriteTo(ClientStream);
 
-                var sslRequest = await ProxySslRequest.For(this);
+                var sslRequest = await ProxySslRequest.For(this, _requestInspector);
                 await sslRequest.Process();
 
                 return;
@@ -126,7 +143,7 @@ namespace SharpProxy
         protected async virtual Task GetResponse()
         {
             //Debug.WriteLine("Getting Response");
-            Response = await ProxyResponse.From(RemoteSocket, RemoteStream);
+            Response = await ProxyResponse.From(RemoteSocket, RemoteStream, _requestInspector);
         }
 
         protected async virtual Task WriteResponseToClient()
@@ -156,6 +173,11 @@ namespace SharpProxy
 
             var ipEndPoint = await IPEndPointProvider.Get(host, port);
             return ipEndPoint;
+        }
+
+        public void RegisterInspector(IRequestInspector requestInspector)
+        {
+            _requestInspector = requestInspector;
         }
     }
 }

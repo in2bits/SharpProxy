@@ -11,33 +11,61 @@ namespace SharpProxy
 {
     public class ProxyResponse
     {
+        private IResponseInspector _responseInspector;
         public HttpResponsePrologue Prologue { get; set; }
-        
+
+        public Socket RemoteSocket { get; set; }
+        public Stream RemoteStream { get; set; }
+
         public Stream Content { get; set; }
 
-        async public static Task<ProxyResponse> From(Socket socket, Stream stream)
+        async public static Task<ProxyResponse> From(Socket socket, Stream stream, IRequestInspector requestInspector)
         {
             var response = new ProxyResponse();
 
+            response.RemoteSocket = socket;
+            response.RemoteStream = stream;
+
+            requestInspector.OnResponseBegun(response);
+
+            await response.ReadPrologue();
+
+            await response.ReadContent();
+
+            return response;
+        }
+
+        async private Task ReadPrologue()
+        {
             //Debug.WriteLine("Reader Server Response Prologue");
-            response.Prologue = HttpResponsePrologue.From(stream);
+            Prologue = HttpResponsePrologue.From(RemoteStream);
             //Debug.WriteLine("Reader Server Response Prologue - DONE");
 
+            if (_responseInspector != null)
+                _responseInspector.OnPrologueReceived();
+        }
+
+        async private Task ReadContent()
+        {
+            if (_responseInspector != null)
+                _responseInspector.OnResponseBodyProgress();
+
             long contentLength;
-            if (!long.TryParse(response.Prologue.Headers.FirstOrDefault(x => x.Key == "Content-Length").Value, out contentLength))
+            if (!long.TryParse(Prologue.Headers.FirstOrDefault(x => x.Key == "Content-Length").Value, out contentLength))
                 contentLength = -1;
 
             //Debug.WriteLine("Reader Server Response Content");
             var content = new MemoryStream();
-            await stream.CopyHttpMessageToAsync(socket, content, contentLength);
+            await RemoteStream.CopyHttpMessageToAsync(RemoteSocket, content, contentLength);
             if (content.Length != 0)
             {
                 content.Position = 0;
-                response.Content = content;
+                Content = content;
             }
             //Debug.WriteLine("Reader Server Response Content - DONE");
 
-            return response;
+            if (_responseInspector != null)
+                _responseInspector.OnResponseBodyReceived();
         }
 
         async public Task WriteTo(NetworkStream stream)
@@ -55,6 +83,11 @@ namespace SharpProxy
             {
                 await Content.CopyToAsync(stream, Content.Length);
             }
+        }
+
+        public void RegisterInspector(IResponseInspector responseInspector)
+        {
+            _responseInspector = responseInspector;
         }
     }
 }

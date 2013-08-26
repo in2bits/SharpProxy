@@ -18,7 +18,7 @@ namespace SharpProxy
 
         private const string MakeCertPath = @"C:\Program Files (x86)\Fiddler2\makecert.exe";
         private static CertificateProvider _certProvider;
-        async public static Task<ProxySslRequest> For(ProxyRequest wrapperRequest)
+        async public static Task<ProxySslRequest> For(ProxyRequest wrapperRequest, IRequestInspector wrapperRequestInspector)
         {
             if (_certProvider == null)
             {
@@ -34,6 +34,9 @@ namespace SharpProxy
                     ClientStream = wrapperRequest.ClientStream
                 };
 
+            if (wrapperRequestInspector != null)
+                wrapperRequestInspector.OnTransferredToSecureRequest(sslRequest);
+
             var hostName = sslRequest.GetHostName();
             sslRequest._hostCert = _certProvider.GetCertificateForHost(hostName);
 
@@ -41,8 +44,7 @@ namespace SharpProxy
             await clientSsslStream.AuthenticateAsServerAsync(sslRequest._hostCert);
             sslRequest.SecureClientStream = clientSsslStream;
 
-            var prologue = HttpRequestPrologue.From(clientSsslStream);
-            sslRequest.Prologue = prologue;
+            sslRequest.ReadPrologue();
 
             return sslRequest;
         }
@@ -57,6 +59,14 @@ namespace SharpProxy
         private static bool RemoteCertificateValidator(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslpolicyerrors)
         {
             return true;
+        }
+
+        protected override void ReadPrologue()
+        {
+            Prologue = HttpRequestPrologue.From(SecureClientStream);
+
+            if (_requestInspector != null)
+                _requestInspector.OnPrologueReceived();
         }
 
         async protected override Task InitRemoteStream()
@@ -96,7 +106,7 @@ namespace SharpProxy
         protected override async Task GetResponse()
         {
             //Debug.WriteLine("GetResponse");
-            Response = await ProxyResponse.From(RemoteSocket, SecureRemoteStream);
+            Response = await ProxyResponse.From(RemoteSocket, SecureRemoteStream, _requestInspector);
             //Debug.WriteLine("GetResponse - DONE");
         }
 

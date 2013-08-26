@@ -1,0 +1,565 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>HarHar.Core</name>
+    </assembly>
+    <members>
+        <member name="T:HarHar.Entity">
+            <summary>
+            Creator and browser objects share the same structure.
+            </summary>
+        </member>
+        <member name="P:HarHar.Entity.Name">
+            <summary>
+            name [string] - Name of the application/browser used to export the log.
+            </summary>
+        </member>
+        <member name="P:HarHar.Entity.Version">
+            <summary>
+             version [string] - Version of the application/browser used to export the log.
+            </summary>
+        </member>
+        <member name="P:HarHar.Entity.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or the application.
+            </summary>
+        </member>
+        <member name="T:HarHar.CacheInfo">
+            <summary>
+            This objects contains info about a request coming from browser cache.
+            </summary>
+        </member>
+        <member name="P:HarHar.CacheInfo.BeforeRequest">
+            <summary>
+            beforeRequest [object, optional] - State of a cache entry before the request. Leave out this field if the information is not available.
+            </summary>
+        </member>
+        <member name="P:HarHar.CacheInfo.AfterRequest">
+            <summary>
+            afterRequest [object, optional] - State of a cache entry after the request. Leave out this field if the information is not available.
+            </summary>
+        </member>
+        <member name="P:HarHar.CacheInfo.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or the application.
+            </summary>
+        </member>
+        <member name="T:HarHar.CacheState">
+            <summary>
+            This objects contains info about the cache state of a resource
+            </summary>
+        </member>
+        <member name="P:HarHar.CacheState.Expires">
+            <summary>
+            expires [string, optional] - Expiration time of the cache entry.
+            </summary>
+        </member>
+        <member name="P:HarHar.CacheState.LastAccess">
+            <summary>
+            lastAccess [string] - The last time the cache entry was opened.
+            </summary>
+        </member>
+        <member name="P:HarHar.CacheState.ETag">
+            <summary>
+            eTag [string] - Etag
+            </summary>
+        </member>
+        <member name="P:HarHar.CacheState.HitCount">
+            <summary>
+            hitCount [number] - The number of times the cache entry has been opened.
+            </summary>
+        </member>
+        <member name="P:HarHar.CacheState.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or the application.
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:HarHar.ContentInfo" -->
+        <member name="P:HarHar.ContentInfo.Size">
+            <summary>
+            size [number] - Length of the returned content in bytes. Should be equal to 
+            response.bodySize if there is no compression and bigger when the content has 
+            been compressed.
+            </summary>
+        </member>
+        <member name="P:HarHar.ContentInfo.Compression">
+            <summary>
+            compression [number, optional] - Number of bytes saved. Leave out this field 
+            if the information is not available.
+            </summary>
+        </member>
+        <member name="P:HarHar.ContentInfo.MimeType">
+            <summary>
+            mimeType [string] - MIME type of the response text (value of the Content-Type 
+            response header). The charset attribute of the MIME type is included (if available).
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:HarHar.ContentInfo.Text" -->
+        <!-- Badly formed XML comment ignored for member "P:HarHar.ContentInfo.Encoding" -->
+        <member name="P:HarHar.ContentInfo.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or the application.
+            </summary>
+        </member>
+        <member name="T:HarHar.CookieInfo">
+            <summary>
+            
+            </summary>
+        </member>
+        <member name="P:HarHar.CookieInfo.Name">
+            <summary>
+            name [string] - The name of the cookie.
+            </summary>
+        </member>
+        <member name="P:HarHar.CookieInfo.Value">
+            <summary>
+            value [string] - The cookie value.
+            </summary>
+        </member>
+        <member name="P:HarHar.CookieInfo.Path">
+            <summary>
+            path [string, optional] - The path pertaining to the cookie.
+            </summary>
+        </member>
+        <member name="P:HarHar.CookieInfo.Domain">
+            <summary>
+            domain [string, optional] - The host of the cookie.
+            </summary>
+        </member>
+        <member name="P:HarHar.CookieInfo.Expires">
+            <summary>
+            expires [string, optional] - Cookie expiration time. 
+            (ISO 8601 - YYYY-MM-DDThh:mm:ss.sTZD, e.g. 2009-07-24T19:20:30.123+02:00).
+            </summary>
+        </member>
+        <member name="P:HarHar.CookieInfo.HttpOnly">
+            <summary>
+            httpOnly [boolean, optional] - Set to true if the cookie is HTTP only, 
+            false otherwise.
+            </summary>
+        </member>
+        <member name="P:HarHar.CookieInfo.Secure">
+            <summary>
+            secure [boolean, optional] (new in 1.2) - True if the cookie was 
+            transmitted over ssl, false otherwise.
+            </summary>
+        </member>
+        <member name="P:HarHar.CookieInfo.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user 
+            or the application.
+            </summary>
+        </member>
+        <member name="T:HarHar.Entry">
+            <summary>
+            This object represents an exported HTTP request.
+            </summary>
+        </member>
+        <member name="P:HarHar.Entry.PageRef">
+            <summary>
+            pageref [string, unique, optional] - Reference to the parent page. Leave out this 
+            field if the application does not support grouping by pages.
+            </summary>
+        </member>
+        <member name="P:HarHar.Entry.StartedDateTime">
+            <summary>
+            startedDateTime [string] - Date and time stamp of the request start 
+            (ISO 8601 - YYYY-MM-DDThh:mm:ss.sTZD).
+            </summary>
+        </member>
+        <member name="P:HarHar.Entry.Time">
+            <summary>
+            time [number] - Total elapsed time of the request in milliseconds. This is the sum 
+            of all timings available in the timings object (i.e. not including -1 values).
+            </summary>
+        </member>
+        <member name="P:HarHar.Entry.Request">
+            <summary>
+            request [object] - Detailed info about the request.
+            </summary>
+        </member>
+        <member name="P:HarHar.Entry.Response">
+            <summary>
+            response [object] - Detailed info about the response.
+            </summary>
+        </member>
+        <member name="P:HarHar.Entry.Cache">
+            <summary>
+            cache [object] - Info about cache usage.
+            </summary>
+        </member>
+        <member name="P:HarHar.Entry.Timings">
+            <summary>
+            timings [object] - Detailed timing info about request/response round trip.
+            </summary>
+        </member>
+        <member name="P:HarHar.Entry.ServerIpAddress">
+            <summary>
+            serverIPAddress [string, optional] (new in 1.2) - IP address of the server that 
+            was connected (result of DNS resolution).
+            </summary>
+        </member>
+        <member name="P:HarHar.Entry.Connection">
+            <summary>
+            connection [string, optional] (new in 1.2) - Unique ID of the parent TCP/IP 
+            connection, can be the client or server port number. Note that a port number 
+            doesn't have to be unique identifier in cases where the port is shared for 
+            more connections. If the port isn't available for the application, any other 
+            unique connection ID can be used instead (e.g. connection index). Leave out 
+            this field if the application doesn't support this info.
+            </summary>
+        </member>
+        <member name="P:HarHar.Entry.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or the 
+            application.
+            </summary>
+        </member>
+        <member name="T:HarHar.Log">
+            <summary>
+            This object represents the root of exported data.
+            
+            There is one Page object for every exported web page and one Entry object for 
+            every HTTP request. In case when an HTTP trace tool isn't able to group requests 
+            by a page, the Pages object is empty and individual requests doesn't have a parent page.
+            
+            http://www.softwareishard.com/blog/har-12-spec/
+            </summary>
+        </member>
+        <member name="P:HarHar.Log.Version">
+            <summary>
+            version [string] - Version number of the format. If empty, string "1.1" is assumed by default.
+            </summary>
+        </member>
+        <member name="P:HarHar.Log.Creator">
+            <summary>
+            creator [object] - Name and version info of the log creator application.
+            </summary>
+        </member>
+        <member name="P:HarHar.Log.Browser">
+            <summary>
+            browser [object, optional] - Name and version info of used browser.
+            </summary>
+        </member>
+        <member name="P:HarHar.Log.Pages">
+            <summary>
+            pages [array, optional] - List of all exported (tracked) pages. Leave out this field if the 
+            application does not support grouping by pages.
+            
+            This object represents an array with all exported HTTP requests. Sorting entries by 
+            startedDateTime (starting from the oldest) is preferred way how to export data since 
+            it can make importing faster. However the reader application should always make sure 
+            the array is sorted (if required for the import).
+            </summary>
+        </member>
+        <member name="P:HarHar.Log.Entries">
+            <summary>
+            entries [array] - List of all exported (tracked) requests.
+            </summary>
+        </member>
+        <member name="P:HarHar.Log.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or the application.
+            </summary>
+        </member>
+        <member name="T:HarHar.Page">
+            <summary>
+            This object represents [an] exported page.
+            </summary>
+        </member>
+        <member name="P:HarHar.Page.StartedDateTime">
+            <summary>
+            startedDateTime [string] - Date and time stamp for the beginning of the page load 
+            (ISO 8601 - YYYY-MM-DDThh:mm:ss.sTZD, e.g. 2009-07-24T19:20:30.45+01:00).
+            </summary>
+        </member>
+        <member name="P:HarHar.Page.Id">
+            <summary>
+            id [string] - Unique identifier of a page within the . Entries use it to refer the parent page.
+            </summary>
+        </member>
+        <member name="P:HarHar.Page.Title">
+            <summary>
+            title [string] - Page title.
+            </summary>
+        </member>
+        <member name="P:HarHar.Page.PageTimings">
+            <summary>
+            pageTimings[object] - Detailed timing info about page load.
+            </summary>
+        </member>
+        <member name="P:HarHar.Page.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or the application.
+            </summary>
+        </member>
+        <member name="T:HarHar.PageTiming">
+            <summary>
+            This object describes timings for various events (states) fired during the page load. 
+            All times are specified in milliseconds. If a time info is not available 
+            appropriate field is set to -1.
+            </summary>
+        </member>
+        <member name="P:HarHar.PageTiming.OnContentLoad">
+            <summary>
+            onContentLoad [number, optional] - Content of the page loaded. Number of milliseconds 
+            since page load started (page.startedDateTime). Use -1 if the timing does not apply to 
+            the current request.
+            </summary>
+        </member>
+        <member name="P:HarHar.PageTiming.OnLoad">
+            <summary>
+            onLoad [number,optional] - Page is loaded (onLoad event fired). Number of milliseconds 
+            since page load started (page.startedDateTime). Use -1 if the timing does not apply to 
+            the current request.
+            
+            Depeding on the browser, onContentLoad property represents DOMContentLoad event or 
+            document.readyState == interactive.
+            </summary>
+        </member>
+        <member name="P:HarHar.PageTiming.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or the 
+            application.
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:HarHar.PostData" -->
+        <member name="P:HarHar.PostData.MimeType">
+            <summary>
+            mimeType [string] - Mime type of posted data.
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:HarHar.PostData.Params" -->
+        <member name="P:HarHar.PostData.Text">
+            <summary>
+            text [string] - Plain text posted data
+            
+            Note that text and params fields are mutually exclusive.
+            </summary>
+        </member>
+        <member name="P:HarHar.PostData.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or 
+            the application.
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "T:HarHar.PostParam" -->
+        <member name="P:HarHar.PostParam.Name">
+            <summary>
+            name [string] - name of a posted parameter.
+            </summary>
+        </member>
+        <member name="P:HarHar.PostParam.Value">
+            <summary>
+            value [string, optional] - value of a posted parameter or content of 
+            a posted file.
+            </summary>
+        </member>
+        <member name="P:HarHar.PostParam.FileName">
+            <summary>
+            fileName [string, optional] - name of a posted file.
+            </summary>
+        </member>
+        <member name="P:HarHar.PostParam.ContentType">
+            <summary>
+            contentType [string, optional] - content type of a posted file.
+            </summary>
+        </member>
+        <member name="P:HarHar.PostParam.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by 
+            the user or the application.
+            </summary>
+        </member>
+        <member name="T:HarHar.RequestInfo">
+            <summary>
+            This object contains detailed info about performed request.
+            </summary>
+        </member>
+        <member name="P:HarHar.RequestInfo.Method">
+            <summary>
+            method [string] - Request method (GET, POST, ...).
+            </summary>
+        </member>
+        <member name="P:HarHar.RequestInfo.Url">
+            <summary>
+            url [string] - Absolute URL of the request (fragments are not included).
+            </summary>
+        </member>
+        <member name="P:HarHar.RequestInfo.HttpVersion">
+            <summary>
+            httpVersion [string] - Request HTTP Version.
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:HarHar.RequestInfo.Cookies" -->
+        <!-- Badly formed XML comment ignored for member "P:HarHar.RequestInfo.Headers" -->
+        <!-- Badly formed XML comment ignored for member "P:HarHar.RequestInfo.QueryString" -->
+        <member name="P:HarHar.RequestInfo.PostData">
+            <summary>
+            postData [object, optional] - Posted data info.
+            </summary>
+        </member>
+        <member name="P:HarHar.RequestInfo.HeadersSize">
+            <summary>
+            headersSize [number] - Total number of bytes from the start of the HTTP request 
+            message until (and including) the double CRLF before the body. Set to -1 if the 
+            info is not available.
+            </summary>
+        </member>
+        <member name="P:HarHar.RequestInfo.BodySize">
+            <summary>
+            bodySize [number] - Size of the request body (POST data payload) in bytes. Set 
+            to -1 if the info is not available.
+            </summary>
+        </member>
+        <member name="P:HarHar.RequestInfo.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or the 
+            application.
+            </summary>
+        </member>
+        <member name="T:HarHar.ResponseInfo">
+            <summary>
+            This object contains detailed info about the response.
+            </summary>
+        </member>
+        <member name="P:HarHar.ResponseInfo.Status">
+            <summary>
+            status [number] - Response status.
+            </summary>
+        </member>
+        <member name="P:HarHar.ResponseInfo.StatusText">
+            <summary>
+            statusText [string] - Response status description.
+            </summary>
+        </member>
+        <member name="P:HarHar.ResponseInfo.HttpVersion">
+            <summary>
+            httpVersion [string] - Response HTTP Version.
+            </summary>
+        </member>
+        <!-- Badly formed XML comment ignored for member "P:HarHar.ResponseInfo.Cookies" -->
+        <!-- Badly formed XML comment ignored for member "P:HarHar.ResponseInfo.Headers" -->
+        <member name="P:HarHar.ResponseInfo.Content">
+            <summary>
+            content [object] - Details about the response body.
+            </summary>
+        </member>
+        <member name="P:HarHar.ResponseInfo.RedirectUrl">
+            <summary>
+            redirectURL [string] - Redirection target URL from the Location response header.
+            </summary>
+        </member>
+        <member name="P:HarHar.ResponseInfo.HeadersSize">
+            <summary>
+            headersSize [number]* - Total number of bytes from the start of the HTTP 
+            response message until (and including) the double CRLF before the body. 
+            Set to -1 if the info is not available.
+            
+             The size of received response-headers is computed only from headers that 
+            are really received from the server. Additional headers appended by the 
+            browser are not included in this number, but they appear in the list of 
+            header objects.
+            
+            
+            The total response size received can be computed as follows (if both 
+            values are available):
+            
+            var totalSize = entry.response.headersSize + entry.response.bodySize;
+            </summary>
+        </member>
+        <member name="P:HarHar.ResponseInfo.BodySize">
+            <summary>
+            bodySize [number] - Size of the received response body in bytes. Set to 
+            zero in case of responses coming from the cache (304). Set to -1 if the 
+            info is not available.
+            
+            
+            The total response size received can be computed as follows (if both 
+            values are available):
+            
+            var totalSize = entry.response.headersSize + entry.response.bodySize;
+            </summary>
+        </member>
+        <member name="P:HarHar.ResponseInfo.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user 
+            or the application.
+            </summary>
+        </member>
+        <member name="T:HarHar.Timings">
+            <summary>
+            This object describes various phases within request-response round trip. 
+            All times are specified in milliseconds.
+            
+            The send, wait and receive timings are not optional and must have non-negative values.
+            
+            An exporting tool can omit the blocked, dns, connect and ssl, timings on every 
+            request if it is unable to provide them. Tools that can provide these timings 
+            can set their values to -1 if they don’t apply. For example, connect would be -1 
+            for requests which re-use an existing connection.
+            
+            The time value for the request must be equal to the sum of the timings supplied 
+            in this section (excluding any -1 values).
+            
+            Following must be true in case there are no -1 values (entry is an object in log.entries) :
+            entry.time == entry.timings.blocked + entry.timings.dns +
+                entry.timings.connect + entry.timings.send + entry.timings.wait +
+                entry.timings.receive;
+            </summary>
+        </member>
+        <member name="P:HarHar.Timings.Blocked">
+            <summary>
+            blocked [number, optional] - Time spent in a queue waiting for a network connection. 
+            Use -1 if the timing does not apply to the current request.
+            </summary>
+        </member>
+        <member name="P:HarHar.Timings.Dns">
+            <summary>
+            dns [number, optional] - DNS resolution time. The time required to resolve a host name. 
+            Use -1 if the timing does not apply to the current request.
+            </summary>
+        </member>
+        <member name="P:HarHar.Timings.Connect">
+            <summary>
+            connect [number, optional] - Time required to create TCP connection. 
+            Use -1 if the timing does not apply to the current request.
+            </summary>
+        </member>
+        <member name="P:HarHar.Timings.Send">
+            <summary>
+            send [number] - Time required to send HTTP request to the server.
+            
+            The send, wait and receive timings are not optional and must have non-negative values.
+            </summary>
+        </member>
+        <member name="P:HarHar.Timings.Wait">
+            <summary>
+            wait [number] - Waiting for a response from the server.
+            
+            The send, wait and receive timings are not optional and must have non-negative values.
+            </summary>
+        </member>
+        <member name="P:HarHar.Timings.Receive">
+            <summary>
+            receive [number] - Time required to read entire response from the server (or cache).
+            
+            The send, wait and receive timings are not optional and must have non-negative values.
+            </summary>
+        </member>
+        <member name="P:HarHar.Timings.Ssl">
+            <summary>
+            ssl [number, optional] (new in 1.2) - Time required for SSL/TLS negotiation. 
+            If this field is defined then the time is also included in the connect field 
+            (to ensure backward compatibility with HAR 1.1). Use -1 if the timing does not 
+            apply to the current request.
+            </summary>
+        </member>
+        <member name="P:HarHar.Timings.Comment">
+            <summary>
+            comment [string, optional] (new in 1.2) - A comment provided by the user or 
+            the application.
+            </summary>
+        </member>
+    </members>
+</doc>

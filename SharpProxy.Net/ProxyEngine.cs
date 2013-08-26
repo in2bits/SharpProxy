@@ -7,22 +7,24 @@ namespace SharpProxy
 {
     public class ProxyEngine : IWebProxy, IDisposable
     {
+        private readonly IProxyInspector _proxyInspector;
         private ProxyListener _listener;
 
-        private ProxyEngine(IPAddress ipAddress, int port, bool autoStart = true)
+        private ProxyEngine(IPAddress ipAddress, int port, bool autoStart = true, IProxyInspector proxyInspector = null)
         {
-            _listener = new ProxyListener(port, ipAddress);
+            _proxyInspector = proxyInspector;
+            _listener = new ProxyListener(port, ipAddress, _proxyInspector);
             var uriBuilder = new UriBuilder("http", ipAddress.ToString(), port);
             Uri = uriBuilder.Uri;
             if (autoStart)
                 _listener.Start();
         }
 
-        public static ProxyEngine New(bool autoStart = true)
+        public static ProxyEngine New(string harPath = null, bool autoStart = true, IProxyInspector proxyInspector = null)
         {
             var port = 8088;
             var ip = LocalIPAddress(); //the ip of the machine on which the proxy is running/listening
-            return new ProxyEngine(ip, port, autoStart);
+            return new ProxyEngine(ip, port, autoStart, proxyInspector);
         }
         
         private static IPAddress LocalIPAddress()

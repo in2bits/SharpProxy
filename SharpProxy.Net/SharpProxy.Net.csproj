@@ -30,6 +30,13 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="HarHar.Core, Version=0.1.0.1, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\packages\HarHar.Core.0.1.0.1\lib\net40\HarHar.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="ServiceStack.Text">
+      <HintPath>..\packages\ServiceStack.Text.3.9.58\lib\net35\ServiceStack.Text.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.ServiceModel" />
@@ -41,11 +48,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="HarProxyInspector.cs" />
+    <Compile Include="HarRequestInspector.cs" />
+    <Compile Include="HarResponseInspector.cs" />
     <Compile Include="HeadersExtensions.cs" />
     <Compile Include="HttpPrologue.cs" />
     <Compile Include="HttpRequestPrologue.cs" />
     <Compile Include="HttpResponsePrologue.cs" />
     <Compile Include="HttpsResponsePrologue.cs" />
+    <Compile Include="IProxyInspector.cs" />
     <Compile Include="IPEndPointProvider.cs" />
     <Compile Include="IPHelper\Helper.cs" />
     <Compile Include="IPHelper\IPNetRow.cs" />
@@ -56,6 +67,8 @@
     <Compile Include="IPHelper\UdpRow.cs" />
     <Compile Include="IPHelper\UdpTable.cs" />
     <Compile Include="IPHelper\Win32Funcs.cs" />
+    <Compile Include="IRequestInspector.cs" />
+    <Compile Include="IResponseInspector.cs" />
     <Compile Include="LogProxy.MakeCertWrapper\CertificateHashAlgorithm.cs" />
     <Compile Include="LogProxy.MakeCertWrapper\CertificateName.cs" />
     <Compile Include="LogProxy.MakeCertWrapper\CertificateProvider.cs" />
@@ -78,6 +91,9 @@
   <ItemGroup>
     <Content Include="IPHelper\License.IPHelper.txt" />
     <Content Include="LogProxy.MakeCertWrapper\LICENSE.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

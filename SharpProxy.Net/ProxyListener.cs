@@ -9,6 +9,7 @@ namespace SharpProxy
     //http://msdn.microsoft.com/en-us/library/system.net.httplistener.aspx
     class ProxyListener
     {
+        private readonly IProxyInspector _proxyInspector;
         //https://gist.github.com/leandrosilva/656054
         private readonly Socket _proxySocket;
         private readonly IPAddress _localAddress;
@@ -19,8 +20,9 @@ namespace SharpProxy
         /// </summary>
         /// <param name="port"></param>
         /// <param name="ipAddress"></param>
-        public ProxyListener(Int32 port, IPAddress ipAddress)
+        public ProxyListener(Int32 port, IPAddress ipAddress, IProxyInspector proxyInspector)
         {
+            _proxyInspector = proxyInspector;
             try
             {
                 _localAddress = ipAddress;
@@ -84,7 +86,7 @@ namespace SharpProxy
                 while (clientSocket.Connected)
                 {
                     socketRequests++;
-                    var proxyRequest = ProxyRequest.For(clientSocket);
+                    var proxyRequest = ProxyRequest.For(clientSocket, _proxyInspector);
                     if (socketRequests > 1)
                         Debug.WriteLine("Client Connection Reused #" + socketRequests);
                     await proxyRequest.Process();

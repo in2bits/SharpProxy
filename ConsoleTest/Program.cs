@@ -17,14 +17,20 @@ namespace ConsoleTest
         static void Main(string[] args)
         {
             ServicePointManager.ServerCertificateValidationCallback = TrustCertificate;
-            _proxy = ProxyEngine.New();
+            var harFile = string.Format("SharpProxy.{0}.har", DateTime.Now.ToString("yyyyMMddh.hhmmss"));
+            harFile = "SharpProxy.har";
+            var inspector = new HarProxyInspector();
+            _proxy = ProxyEngine.New(proxyInspector: inspector);
             Task.Run((Action)MakeRequest);
             while (!_done)
             {
                 //Console.Write(".");
                 Thread.Sleep(100);
             }
+            using (var fs = File.Open(harFile, FileMode.Create))
+                inspector.SaveTo(fs);
             Console.WriteLine();
+            Console.WriteLine("CurDir: " + Environment.CurrentDirectory);
             Console.WriteLine("Done!");
             Console.ReadKey();
         }
@@ -64,7 +70,7 @@ namespace ConsoleTest
 
             //_b = WebRequest.CreateHttp(_uriB);
             //_b.BeginGetResponse(OnGotResponse, _b);
-
+            _bDone = true;
         }
 
         private static HttpWebResponse _response;
